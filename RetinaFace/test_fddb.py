@@ -25,6 +25,7 @@ parser.add_argument('-m', '--trained_model', default='weights/mobilenet0.25_Fina
 parser.add_argument('--network', default='mobile0.25', help='Backbone network mobile0.25 or resnet50')
 parser.add_argument('--save_folder', default='eval/', type=str, help='Dir to save results')
 parser.add_argument('--cpu', action="store_true", default=False, help='Use cpu inference')
+parser.add_argument('--cuda', default=0, help='Use gpu inference')
 parser.add_argument('--dataset', default='FDDB', type=str, choices=['FDDB'], help='dataset')
 parser.add_argument('--confidence_threshold', default=0.02, type=float, help='confidence_threshold')
 parser.add_argument('--top_k', default=5000, type=int, help='top_k')
@@ -93,6 +94,7 @@ if __name__ == '__main__':
     # print(net)
     cudnn.benchmark = True
     device = torch.device("cpu" if args.cpu else "cuda")
+    print(device, " is being used")
     net = net.to(device)
 
 
@@ -102,21 +104,21 @@ if __name__ == '__main__':
     fw = open(os.path.join(args.save_folder, args.dataset + '_dets.txt'), 'w')
 
     # testing dataset
-    TEST_FOLDER = '/home/tungnguyendinh/review_assistant/git_repo/Pytorch_Retinaface/inputs/'
-    TEST_FOLDER = '/home/nguyenhuuminh/MyProjects/ReviewAssistant/pvn-review-assistant/data/pixta_new_chips_22_39_filtered/'
+    # TEST_FOLDER = '/home/tungnguyendinh/review_assistant/git_repo/Pytorch_Retinaface/inputs/'
+    # TEST_FOLDER = '/home/nguyenhuuminh/MyProjects/ReviewAssistant/pvn-review-assistant/data/pixta_new_chips_22_39_filtered/'
     # TEST_FOLDER = '/home/nguyenhuuminh/MyProjects/ReviewAssistant/pvn-review-assistant/data/test/'
-    TEST_FOLDER = '/home/nguyenhuuminh/MyProjects/ReviewAssistant/pvn-review-assistant/data/pixta_22_43/test/'
-    TEST_FOLDER = '/home/tungnguyendinh/review_assistant/project/data/crawled_data_2d/'
-    TEST_FOLDER = 'photos/'
+    # TEST_FOLDER = '/home/nguyenhuuminh/MyProjects/ReviewAssistant/pvn-review-assistant/data/pixta_22_43/test/'
+    # TEST_FOLDER = '/home/tungnguyendinh/review_assistant/project/data/crawled_data_2d/'
+    TEST_FOLDER = '/home/tungnguyen/Review/photos/'
     images = glob(TEST_FOLDER + '*.jpg')
     num_images = len(images)
     # print(images)
     
-    testset_folder = os.path.join('data', args.dataset, 'images/')
-    testset_list = os.path.join('data', args.dataset, 'img_list.txt')
+    testset_folder = os.path.join('RetinaFace/data', args.dataset, 'images/')
+    testset_list = os.path.join('RetinaFace/data', args.dataset, 'img_list.txt')
     with open(testset_list, 'r') as fr:
         test_dataset = fr.read().split()
-    print(num_images)
+    print('Number of images ',num_images)
 
     # testing scale
 
@@ -125,7 +127,7 @@ if __name__ == '__main__':
 
     forward_time = []
     misc_time = []
-    print(len(images))
+    # print(len(images))
     # lm_listt = []
     # img_listt = []
     # data_pred_list = []
@@ -148,7 +150,7 @@ if __name__ == '__main__':
 
         img = cv2.resize(img, None, None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
         im_height, im_width, _ = img.shape
-        print(img_name, im_height, im_width)
+        # print(img_name, im_height, im_width)
         scale = torch.Tensor([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
         img -= (104, 117, 123)
         img = img.transpose(2, 0, 1)
@@ -306,7 +308,7 @@ if __name__ == '__main__':
     # df = pd.DataFrame(data=d)
     # df.to_csv('dataa.csv')
 
-        with open('results/prediction_demo.json', 'w') as file:
+        with open('/home/tungnguyen/Review/results/prediction_demo.json', 'w') as file:
             json.dump(data_pred_dict, file)
 
     print('Infer time = ', time.time() - start_time)

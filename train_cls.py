@@ -117,7 +117,7 @@ def train_model(model, dataloaders, criterion, optimizer,
     # load best model weights
     model.load_state_dict(best_model_wts)
 
-    torch.save(model.state_dict(), 'models/' + args.model + '_' + str(args.num_epochs) + 'epochs' + '.pth')
+    torch.save(model.state_dict(), 'cls_models/' + args.model + '_' + str(args.num_epochs) + 'epochs' + '.pth')
 
     torch.cuda.empty_cache()
     return model, val_acc_history, losses
@@ -125,14 +125,14 @@ def train_model(model, dataloaders, criterion, optimizer,
 def run():
     train_set = ReviewAssisstantDataset(csv_file = '/home/ducvuhong/statue_vs_human/data/train_pixta.csv', 
                             root_dir='/home/tungnguyen/Review/data/statue_vs_human/data/train/full', 
-                            input_shape = (3, 112, 112),
+                            input_shape = (3, 224, 224),
                             mode = 'train'
                             )
     train_loader = torch.utils.data.DataLoader(train_set, batch_size = args.batch_size, shuffle=True, num_workers=8)
 
     val_set = ReviewAssisstantDataset(csv_file = '/home/tungnguyen/Review/data/val.csv', 
                             root_dir='/home/tungnguyen/Review/data/val', 
-                            input_shape = (3, 112, 112),
+                            input_shape = (3, 224, 224),
                             mode = 'val'
                             )
     val_loader = torch.utils.data.DataLoader(val_set, batch_size = args.batch_size, shuffle=True, num_workers=8)
@@ -150,9 +150,9 @@ def run():
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     criterion = nn.CrossEntropyLoss()
-    train_model(model, dataloader, criterion, optimizer, 
-                num_epochs = args.num_epochs, 
-                is_inception=False)
+    model, val_acc_history, losses = train_model(model, dataloader, criterion, optimizer, 
+                                                    num_epochs = args.num_epochs, 
+                                                    is_inception=False)
 
 
 if __name__ == '__main__':

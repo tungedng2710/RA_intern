@@ -27,14 +27,14 @@ class ReviewAssisstantDataset(Dataset):
                 transforms.Resize(self.input_shape[1:]),
                 # transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.5], std=[0.5])
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
         else: 
             self.transform = transforms.Compose([
                 transforms.Resize(self.input_shape[1:]),
                 transforms.ToTensor(),
                 #torch.from_numpy(transforms)
-                transforms.Normalize(mean=[0.5], std=[0.5])
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
     def __len__(self):
         return len(self.image_path_list)
@@ -47,12 +47,30 @@ class ReviewAssisstantDataset(Dataset):
         return img, label_idx
 
 
-if __name__ == '__main__':
-    dataset = ReviewAssisstantDataset(csv_file = '/home/ducvuhong/statue_vs_human/data/train.csv', 
-                            root_dir='/home/ducvuhong/statue_vs_human/data/train/human/', 
-                            input_shape = (3, 224, 224),
-                            mode = 'train'
-                            )
-    trainloader = torch.utils.data.DataLoader(dataset, batch_size=128, shuffle=True)
-    sample, label = dataset.__getitem__(1)
-    print(sample)
+class DatasetStatueHuman(Dataset):
+    def __init__(self, toTensor, transform, csv_file_ori, input_shape = (3, 224, 224)):
+        self.transform = transform
+        self.csv_file_ori = csv_file_ori
+        self.input_shape = input_shape       
+
+        # Load csv and info file
+        if type(csv_file_ori) == pd.core.frame.DataFrame:
+            data_list_ori = csv_file_ori
+        else:
+            data_list_ori = pd.read_csv(csv_file_ori)
+        # data_list_ori = pd.read_csv(csv_file_ori)
+        
+        self.image_path_list = data_list_ori['image_path'].to_list()
+        self.label = data_list_ori['label'].to_list()      
+        self.toTensor = toTensor
+    
+    def __getitem__(self, index):
+        image_path = self.image_path_list[index]
+        label_idx = float(self.label[index])
+        img = Image.open(image_path)
+        img = self.transform(img, label_idx)
+        img = self.toTensor(img)
+        return img, label_idx
+    
+    def __len__(self):
+        return len(self.label)
