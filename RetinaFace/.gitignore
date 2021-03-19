@@ -1,0 +1,11 @@
+__pycache__
+outputs*
+out*
+*env
+weights/
+widerface_evaluate
+data/widerface
+.vscode
+*.jpg
+*.ipynb
+*.json
