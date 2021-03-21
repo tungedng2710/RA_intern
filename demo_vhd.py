@@ -50,18 +50,25 @@ def load_model(model_name : str, ckpt_path):
         model.load_state_dict(torch.load(ckpt_path, map_location='cpu'))
         model.to(device)
         model.eval()
+    return model
+
+
 
 
 
 if __name__ == '__main__':
     json_path = "data.json"
-    f = open(json_path, "r")
+    f = open(json_path, "w")
     data = json.load(f) 
 
+    device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
     model_cls = load_model("vhd_resnet34", "/Users/mac/Projects/MergeRetina/RA_intern/8_0.9138495092693566.pth")
 
 
-    
+
+    json.dump(data, f)
+    f.close()
+
 
 # def crop_full(self):
 #         _create_folder(self.output_statue)
