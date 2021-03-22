@@ -1,13 +1,14 @@
 import json
 import torchvision.models as models
 import torch
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import pandas as pd 
 import os
 import sys
 from tqdm import *
 from preprocess.img_aug import ImageAugment
 import torch.nn as nn 
+from torchvision import transforms
 
 def chip_list(json_data):
         chip = []
@@ -55,22 +56,37 @@ def load_model(model_name : str, ckpt_path):
         model.eval()
     return model
 
-def main(data_json, root_dir, sig, model_cls):
+def visualize(image, box, class_num, output_path, name, conf):
+    font = ImageFont.truetype("times-ro.ttf", 24)
+    image_vs = ImageDraw.Draw(image)
+    x1, y1, x2, y2 = box
+    if class_num == 0:
+        image_vs.rectangle([(x1, y1), (x2, y2)], outline = (0,255,0)))
+        image_vs.text((x1, y1-10), "Human: " + str(conf) , (0,255,0), font=font)
+    else:
+        image_vs.rectangle([(x1, y1), (x2, y2)], outline = (255,0,0)))
+        image_vs.text((x1, y1-10), "Statue: " + str(conf) , (255,0,0), font=font)
+    image_vs = image_vs.save(os.path.join(output_path, name + '.jpg'))
+
+def main(data_json, root_dir, sig, model_cls, output_path, mode_visual : False):
     ia = ImageAugment([False, False])
     image_list = data_json.keys()
+    toTensor = transforms.Compose([transforms.ToTensor()])
     for img in image_list:
         img_path = os.path.join(root_dir, img + '.jpg')
         for pred in data[i]['prediction']:
             x1, y1, x2, y2 = change_coordinate(0.9, (pred['pred_bbox_x1'], pred['pred_bbox_y1'], pred['pred_bbox_x2'], pred['pred_bbox_y2']))
             image = Image.open(img_path)
             bbox_img = image[y1:y2, x1:x2]
-            bbox_img = torch.Tensor(bbox_img)
+            bbox_img = torch.toTensor(bbox_img)
             bbox_img = torch.unsqueeze(bbox_img, 0)
             output = int(torch.round(sigmoid(model(bbox_img))))
             if output == 0:
                 pred['class'] = 'human'
             else:
                 pred['class'] = 'statue'
+            if mode_visual:
+                visualize(image, (pred['pred_bbox_x1'], pred['pred_bbox_y1'], pred['pred_bbox_x2'], pred['pred_bbox_y2']), output, output_path, img, pred['pred_bbox_conf'])
     return data_json
             
 if __name__ == '__main__':
@@ -83,7 +99,6 @@ if __name__ == '__main__':
     sigmoid = nn.Sequential(
         nn.Sigmoid()
     )
-    data_new = main(data, root_dir, sigmoid, model_cls)
+    data_new = main(data, root_dir, sigmoid, model_cls, '/home/ducvuhong/statue_vs_human/RA_intern/image_demo', True)
     json.dump(data, f)
     f.close()
-    
