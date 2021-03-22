@@ -5,6 +5,9 @@ from PIL import Image
 import pandas as pd 
 import os
 import sys
+from tqdm import *
+from preprocess.img_aug import ImageAugment
+import torch.nn as nn 
 
 def chip_list(json_data):
         chip = []
@@ -13,7 +16,7 @@ def chip_list(json_data):
                 chip.append(img_chip)
         return chip
 
-def change_coordinate(coef, box):
+def change_coordinate(coef, box : tuple):
     x1, y1, x2, y2 = box
     if coef == 0:
         return x1, y1, x2, y2 = map(int, map(round, box))
@@ -52,53 +55,35 @@ def load_model(model_name : str, ckpt_path):
         model.eval()
     return model
 
-
-
-
-
+def main(data_json, root_dir, sig, model_cls):
+    ia = ImageAugment([False, False])
+    image_list = data_json.keys()
+    for img in image_list:
+        img_path = os.path.join(root_dir, img + '.jpg')
+        for pred in data[i]['prediction']:
+            x1, y1, x2, y2 = change_coordinate(0.9, (pred['pred_bbox_x1'], pred['pred_bbox_y1'], pred['pred_bbox_x2'], pred['pred_bbox_y2']))
+            image = Image.open(img_path)
+            bbox_img = image[y1:y2, x1:x2]
+            bbox_img = torch.Tensor(bbox_img)
+            bbox_img = torch.unsqueeze(bbox_img, 0)
+            output = int(torch.round(sigmoid(model(bbox_img))))
+            if output == 0:
+                pred['class'] = 'human'
+            else:
+                pred['class'] = 'statue'
+    return data_json
+            
 if __name__ == '__main__':
+    device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+    model_cls = load_model("vhd_resnet34", "/Users/mac/Projects/MergeRetina/RA_intern/8_0.9138495092693566.pth")
     json_path = "data.json"
     f = open(json_path, "w")
     data = json.load(f) 
-
-    device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
-    model_cls = load_model("vhd_resnet34", "/Users/mac/Projects/MergeRetina/RA_intern/8_0.9138495092693566.pth")
-
-
-
+    root_dir = '/home/nguyenhuuminh/MyProjects/ReviewAssistant/pvn-review-assistant/data/pixta_22_43/test/' 
+    sigmoid = nn.Sequential(
+        nn.Sigmoid()
+    )
+    data_new = main(data, root_dir, sigmoid, model_cls)
     json.dump(data, f)
     f.close()
-
-
-# def crop_full(self):
-#         _create_folder(self.output_statue)
-#         _create_folder(self.output_human)
-#         chip = self._chip_list()
-#         num_statue, num_face = 0, 0
-
-#         csv_file = open(self.csv_path, mode='a')
-#         fieldnames = ['image_path', 'data', 'label']
-#         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-#         if self.append_mode == False:
-#             writer.writeheader()
-
-#         with tqdm(total=len(chip)) as progressbar:
-#             for img_chip in chip:
-#                 img_path = os.path.join(self.root, img_chip['chip_name'])
-#                 for bbox in img_chip['chip_valid_bboxes']:
-#                     box = (bbox['bbox_x1'], bbox['bbox_x2'], bbox['bbox_y1'], bbox['bbox_y2'])
-#                     if bbox['class'] == 3 or bbox['class'] == 2 or bbox['class'] == 5: # Fake 2D - No MR - Human
-#                         continue
-#                     elif bbox['class'] == 1: # MR - Face
-#                         path_output = os.path.join(self.output_human, f'{img_chip["chip_name"][:-4]}_{img_chip["chip_id"]}_{bbox["bbox_x1"]}_{bbox["bbox_x2"]}.jpg')
-#                         self.crop_save_img(img_path, path_output, box)
-#                         writer.writerow({'image_path': path_output, 'data': self.dataset, 'label': 0}) # Human
-#                         num_face +=1
-#                     else:
-#                         path_output = os.path.join(self.output_statue, f'{img_chip["chip_name"][:-4]}_{img_chip["chip_id"]}_{bbox["bbox_x1"]}_{bbox["bbox_x2"]}.jpg')
-#                         self.crop_save_img(img_path, path_output, box)
-#                         writer.writerow({'image_path': path_output, 'data': self.dataset, 'label': 1}) # Statue
-#                         num_statue +=1
-#                 progressbar.update(1)
-#                 progressbar.set_postfix({"Number of Statues": num_statue, "Number of Faces": num_face})
-#         csv_file.close()
+    
